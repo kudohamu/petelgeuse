@@ -41,7 +41,7 @@ func main() {
 }
 ```
 
-#### with args
+### with args
 
 ```go
 package main
@@ -79,4 +79,48 @@ func main() {
 		}(i)
 	}
 }
+```
+
+### retry
+
+```go
+package main
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/kudohamu/petelgeuse"
+)
+
+type AlwaysFailTask struct{}
+
+func (t *AlwaysFailTask) Run() error {
+	fmt.Println(time.Now().String())
+	return errors.New("failed")
+}
+
+func main() {
+	pt := petelgeuse.New(&petelgeuse.Option{
+		WorkerSize:    10,
+		QueueSize:     10,
+		MaxRetryCount: 5, // retry up to 5 times for each task.
+	})
+	pt.Start()
+	defer pt.Stop()
+
+	pt.Add(&AlwaysFailTask{})
+}
+```
+
+**outputs**
+
+```shell
+2017-09-17 05:07:36.747413961 +0900 JST // first running
+2017-09-17 05:07:37.90314243 +0900 JST // 1st retry
+2017-09-17 05:07:39.469494268 +0900 JST // 2nd retry
+2017-09-17 05:07:42.053893216 +0900 JST // 3rd retry
+2017-09-17 05:07:45.811261686 +0900 JST // 4th retry
+2017-09-17 05:07:53.497230063 +0900 JST // 5th retry
 ```
