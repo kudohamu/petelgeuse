@@ -39,8 +39,8 @@ type runner struct {
 
 // Option represents optional parameters.
 type Option struct {
-	WorkerSize int // required
-	QueueSize  int // required
+	WorkerSize uint // required
+	QueueSize  uint // required
 
 	// optional.
 	// default: 0 (no retry).
@@ -91,7 +91,7 @@ func New(option *Option) *Manager {
 		option:    option,
 	}
 
-	for i := 0; i < option.WorkerSize; i++ {
+	for i := uint(0); i < option.WorkerSize; i++ {
 		m.workers[i] = &worker{
 			taskQueue: tq,
 			wg:        &wg,

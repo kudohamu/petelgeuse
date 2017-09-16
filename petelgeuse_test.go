@@ -31,8 +31,8 @@ func (d *dummyTask) Run() error {
 
 func TestTask(t *testing.T) {
 	testcases := []struct {
-		workerSize int
-		taskSize   int
+		workerSize uint
+		taskSize   uint
 		expected   int
 	}{
 		{2, 10, 10},
@@ -48,7 +48,7 @@ func TestTask(t *testing.T) {
 			QueueSize:  tc.workerSize,
 		})
 		pt.Start()
-		for i := 0; i < tc.taskSize; i++ {
+		for i := uint(0); i < tc.taskSize; i++ {
 			pt.Add(&dummyTask{counter: counter})
 		}
 		pt.Stop()
@@ -73,8 +73,8 @@ func (d *dummy3FailTask) Run() error {
 
 func TestRetryTask(t *testing.T) {
 	testcases := []struct {
-		workerSize    int
-		taskSize      int
+		workerSize    uint
+		taskSize      uint
 		maxRetryCount int16
 		expected      int
 	}{
@@ -92,7 +92,7 @@ func TestRetryTask(t *testing.T) {
 			MaxRetryCount: tc.maxRetryCount,
 		})
 		pt.Start()
-		for i := 0; i < tc.taskSize; i++ {
+		for i := uint(0); i < tc.taskSize; i++ {
 			pt.Add(&dummy3FailTask{
 				tryCount: 0,
 				counter:  counter,
