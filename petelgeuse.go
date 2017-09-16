@@ -3,6 +3,7 @@ package petelgeuse
 
 import (
 	"context"
+	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -44,6 +45,7 @@ type Option struct {
 
 	// optional.
 	// default: 0 (no retry).
+	// negative number is infinite retrying, but in that case recommend specifying `MaxRetryMillisecond`.
 	MaxRetryCount int16
 
 	// optional.
@@ -66,6 +68,9 @@ func New(option *Option) *Manager {
 	var mu sync.Mutex
 
 	// set default values to option
+	if option.MaxRetryMillisecond == 0 && option.MaxRetryCount < 0 {
+		option.MaxRetryMillisecond = uint(math.MaxUint64)
+	}
 	if option.MinRetryMillisecond < 1000 {
 		option.MinRetryMillisecond = 1000
 	}
@@ -174,7 +179,7 @@ func (w *worker) start() {
 					return
 				}
 
-				if err := r.task.Run(); err != nil && r.retryCount < w.m.option.MaxRetryCount {
+				if err := r.task.Run(); err != nil && (w.m.option.MaxRetryCount < 0 || r.retryCount < w.m.option.MaxRetryCount) {
 					r.retryCount++
 					go w.m.retry(w.m.ctx, r)
 					continue
