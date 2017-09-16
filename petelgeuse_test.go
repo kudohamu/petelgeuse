@@ -1,6 +1,7 @@
 package petelgeuse
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -49,6 +50,53 @@ func TestTask(t *testing.T) {
 		pt.Start()
 		for i := 0; i < tc.taskSize; i++ {
 			pt.Add(&dummyTask{counter: counter})
+		}
+		pt.Stop()
+		assert.Equal(t, tc.expected, counter.count)
+	}
+}
+
+type dummy3FailTask struct {
+	tryCount int8
+	counter  *dummyCounter
+}
+
+func (d *dummy3FailTask) Run() error {
+	d.tryCount++
+	if d.tryCount < 4 {
+		return errors.New("error")
+	}
+
+	d.counter.countUp()
+	return nil
+}
+
+func TestRetryTask(t *testing.T) {
+	testcases := []struct {
+		workerSize    int
+		taskSize      int
+		maxRetryCount int16
+		expected      int
+	}{
+		{10, 10, 3, 10},
+		{10, 10, 2, 0},
+	}
+
+	for _, tc := range testcases {
+		counter := &dummyCounter{
+			mu: new(sync.Mutex),
+		}
+		pt := New(&Option{
+			WorkerSize:    tc.workerSize,
+			QueueSize:     tc.workerSize,
+			MaxRetryCount: tc.maxRetryCount,
+		})
+		pt.Start()
+		for i := 0; i < tc.taskSize; i++ {
+			pt.Add(&dummy3FailTask{
+				tryCount: 0,
+				counter:  counter,
+			})
 		}
 		pt.Stop()
 		assert.Equal(t, tc.expected, counter.count)
