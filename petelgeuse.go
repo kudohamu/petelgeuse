@@ -124,7 +124,7 @@ func (m *Manager) Add(task Task) {
 // Start starts each worker.
 func (m *Manager) Start() {
 	for _, w := range m.workers {
-		w.start()
+		go w.start()
 	}
 }
 
@@ -171,23 +171,21 @@ func (m *Manager) retry(ctx context.Context, r *runner) {
 }
 
 func (w *worker) start() {
-	go func() {
-		for {
-			select {
-			case r, ok := <-w.taskQueue:
-				if !ok {
-					return
-				}
-
-				if err := r.task.Run(); err != nil && (w.m.option.MaxRetryCount < 0 || r.retryCount < w.m.option.MaxRetryCount) {
-					r.retryCount++
-					go w.m.retry(w.m.ctx, r)
-					continue
-				}
-				w.wg.Done()
-			case <-w.m.ctx.Done():
+	for {
+		select {
+		case r, ok := <-w.taskQueue:
+			if !ok {
 				return
 			}
+
+			if err := r.task.Run(); err != nil && (w.m.option.MaxRetryCount < 0 || r.retryCount < w.m.option.MaxRetryCount) {
+				r.retryCount++
+				go w.m.retry(w.m.ctx, r)
+				continue
+			}
+			w.wg.Done()
+		case <-w.m.ctx.Done():
+			return
 		}
-	}()
+	}
 }
